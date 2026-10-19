@@ -49,6 +49,10 @@ Then:
 
 `./var` holds the cache and the database. Delete it to start from scratch; your Databento folder is never written to.
 
+### Interpretations prepared outside the app
+
+`strategies/*.json` holds interpretations written by Claude in chat (e.g. `ema_vwap_strong_candle.json`: 10/20/30/60 EMA + VWAP strong-candle breakout, longs only). Load one with **Describe → Import interpretation (.json)**. Your own words travel with the file, and every value goes through the same quote check as the in-app AI. Anything you didn't decide stays an open question.
+
 ### Inspect data without the app
 
 ```bash

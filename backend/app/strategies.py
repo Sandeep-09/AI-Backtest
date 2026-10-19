@@ -114,6 +114,36 @@ def create(text: str, name: str | None = None) -> int:
     return sid
 
 
+def import_interpretation(payload: dict) -> int:
+    """
+    Load an interpretation written outside the app (e.g. by Claude in a chat).
+    The user's own words are stored as messages and every proposal goes through the
+    same quote check as the in-app AI: a value without a verbatim quote is not applied.
+    """
+    from .llm.interpret import Interpretation, Proposal
+
+    texts = [str(t) for t in payload.get("messages") or [] if str(t).strip()]
+    if not texts:
+        raise ValueError("an interpretation needs the user's own words in 'messages'")
+    sid = db.ex("INSERT INTO strategies(name, created_at) VALUES (?,?)", (payload.get("name") or texts[0][:60], db.now()))
+    for t in texts:
+        db.ex("INSERT INTO messages(strategy_id, version, role, content, meta_json, created_at) VALUES (?,?,?,?,?,?)",
+              (sid, 1, "user", t, None, db.now()))
+    res = Interpretation(engine=str(payload.get("engine") or "external"), model=payload.get("model"),
+                         proposals=[Proposal(path=str(p["path"]), value=p.get("value"), quote=p.get("quote"))
+                                    for p in payload.get("proposals") or [] if isinstance(p, dict) and "path" in p],
+                         questions=[str(q) for q in payload.get("questions") or []],
+                         notes=[str(n) for n in payload.get("notes") or []],
+                         unsupported=[u if isinstance(u, dict) else {"text": str(u), "reason": ""} for u in payload.get("unsupported") or []])
+    empty = StrategySpec()
+    new = apply_proposals(empty, res, _user_texts(sid))
+    out = _interp_payload(res)
+    v = _new_version(sid, new, None, "import", {"interpretation": out})
+    db.ex("INSERT INTO messages(strategy_id, version, role, content, meta_json, created_at) VALUES (?,?,?,?,?,?)",
+          (sid, v["version"], "assistant", _assistant_text(out), db.j(out), db.now()))
+    return sid
+
+
 def message(sid: int, text: str) -> dict:
     cur = latest_version(sid)
     spec = StrategySpec.model_validate(cur["spec"])

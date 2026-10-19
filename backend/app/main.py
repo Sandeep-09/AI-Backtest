@@ -161,6 +161,12 @@ def create_strategy(req: CreateReq):
     return strategies.state(sid)
 
 
+@app.post("/api/strategies/import")
+def import_strategy(payload: dict):
+    sid = strategies.import_interpretation(payload)
+    return strategies.state(sid)
+
+
 @app.get("/api/strategies/{sid}")
 def get_strategy(sid: int, version: int | None = None):
     return strategies.state(sid, version)

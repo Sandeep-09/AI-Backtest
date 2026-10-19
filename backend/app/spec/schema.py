@@ -15,7 +15,8 @@ from pydantic import BaseModel, ConfigDict, Field
 Instrument = Literal["NQ", "MNQ", "GC", "MGC"]
 Timeframe = Literal["1m", "2m", "3m", "5m", "10m", "15m", "30m", "1h", "2h", "4h"]
 PriceField = Literal["open", "high", "low", "close"]
-IndicatorType = Literal["ema", "sma", "atr", "rsi", "vwap", "highest", "lowest", "prior_session_high", "prior_session_low"]
+IndicatorType = Literal["ema", "sma", "atr", "rsi", "vwap", "highest", "lowest", "prior_session_high", "prior_session_low",
+                        "candle_body", "candle_range"]
 
 TIMEFRAME_MINUTES: dict[str, int] = {"1m": 1, "2m": 2, "3m": 3, "5m": 5, "10m": 10, "15m": 15, "30m": 30,
                                      "1h": 60, "2h": 120, "4h": 240}
@@ -42,6 +43,7 @@ class Operand(_M):
     field: Optional[PriceField] = Field(default=None, description="Bar field when kind=price")
     value: Optional[float] = Field(default=None, description="Number when kind=const")
     bars_ago: int = Field(default=0, ge=0, le=500, description="0 = the signal bar, 1 = the bar before it")
+    multiplier: float = Field(default=1.0, gt=0, le=1000, description="Scale the value, e.g. 1.5 for '1.5 x ATR'")
     offset_ticks: int = Field(default=0, ge=-10000, le=10000)
 
 
@@ -86,12 +88,14 @@ class Entry(_M):
 
 
 class Stop(_M):
-    type: Literal["fixed_ticks", "atr_multiple", "signal_bar_extreme", "swing_extreme", "indicator"]
+    type: Literal["fixed_ticks", "atr_multiple", "signal_bar_extreme", "swing_extreme", "indicator", "furthest_of"]
     ticks: Optional[int] = Field(default=None, ge=1, le=100000, description="Distance from fill for fixed_ticks")
     atr_ref: Optional[str] = Field(default=None, description="ATR indicator id for atr_multiple")
     multiple: Optional[float] = Field(default=None, gt=0, le=100)
     lookback: Optional[int] = Field(default=None, ge=1, le=500, description="Bars for swing_extreme")
     ref: Optional[str] = Field(default=None, description="Indicator id for indicator stops")
+    levels: Optional[list[Operand]] = Field(default=None, description="furthest_of: candidate levels read at the signal bar; "
+                                            "long uses the lowest, short the highest")
     offset_ticks: int = Field(default=0, ge=0, le=10000, description="Extra ticks beyond the level")
 
 

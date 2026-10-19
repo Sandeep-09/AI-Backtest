@@ -189,6 +189,11 @@ def check(spec: StrategySpec, coverage: dict | None = None) -> list[Question]:
             qs.append(Question("stop-swing", "stop", "How many bars back should the swing high/low be measured?"))
         if s.type == "indicator" and (not s.ref or spec.indicator(s.ref) is None):
             qs.append(Question("stop-ind", "stop", "Which indicator should the stop be placed at?"))
+        if s.type == "furthest_of":
+            if not s.levels or len(s.levels) < 2:
+                qs.append(Question("stop-levels", "stop", "The 'lower/higher of' stop needs at least two levels to compare."))
+            for op in s.levels or []:
+                _check_operand(spec, op, "stop", qs)
 
     # Target / exits
     if spec.target is None:

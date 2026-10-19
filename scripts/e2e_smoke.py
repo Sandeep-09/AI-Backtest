@@ -107,6 +107,17 @@ def main() -> int:
         dirs = pg.locator("tbody tr td:nth-child(2)").all_inner_texts()
         assert dirs and all(d == "short" for d in dirs), dirs
         shot(pg, "6-results")
+
+        # 7. Import an interpretation written outside the app (Claude in chat); every value must pass the quote check.
+        interp = Path(__file__).resolve().parents[1] / "strategies" / "ema_vwap_strong_candle.json"
+        if interp.exists():
+            pg.get_by_role("button", name="New strategy").click()
+            pg.set_input_files("input[type=file]", str(interp))
+            expect(pg.get_by_text("Rules still to decide")).to_be_visible(timeout=60_000)
+            expect(pg.get_by_text("imported")).to_be_visible()
+            assert pg.get_by_text("needs confirmation").count() == 0, "an imported value lacked a quote"
+            expect(pg.get_by_text("1.5 × ATR(14) of the previous bar")).to_be_visible()
+            shot(pg, "7-imported")
         b.close()
 
     if errors:

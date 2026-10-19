@@ -35,6 +35,10 @@ def indicator_label(ind: Indicator | None, ref: str | None = None) -> str:
         return f"highest {ind.source or 'high'} of the last {ind.period or '?'} bars"
     if t == "lowest":
         return f"lowest {ind.source or 'low'} of the last {ind.period or '?'} bars"
+    if t == "candle_body":
+        return "candle body (close − open)"
+    if t == "candle_range":
+        return "candle range (high − low)"
     if t == "prior_session_high":
         return "prior session high"
     if t == "prior_session_low":
@@ -57,6 +61,8 @@ def operand_text(spec: StrategySpec, op: Operand) -> str:
         base = f"the bar's {op.field or '?'}" if op.bars_ago == 0 else f"the {op.field or '?'}{_ago(op.bars_ago)}"
     else:
         base = f"{op.value}"
+    if op.multiplier != 1.0:
+        base = f"{op.multiplier:g} × {base}"
     if op.offset_ticks:
         base += f" {'+' if op.offset_ticks > 0 else '−'} {abs(op.offset_ticks)} tick{'s' if abs(op.offset_ticks) != 1 else ''}"
     return base
@@ -195,6 +201,10 @@ def render(spec: StrategySpec) -> list[dict]:
         sl.append(f"Long: lowest low of the last {st.lookback or '?'} bars up to the signal bar − {_ticks(st.offset_ticks)}. Short: highest high + {_ticks(st.offset_ticks)}.")
     elif st.type == "indicator":
         sl.append(f"At {indicator_label(spec.indicator(st.ref), st.ref)} (value at the signal bar), {_ticks(st.offset_ticks)} beyond it.")
+    elif st.type == "furthest_of":
+        names = [operand_text(spec, o) for o in (st.levels or [])] or [MISSING]
+        sl.append(f"Long: the lower of {', '.join(names)}, read at the signal bar, − {_ticks(st.offset_ticks)}. "
+                  f"Short: the higher of them + {_ticks(st.offset_ticks)}.")
     if st is not None:
         sl.append("If the stop would be on the wrong side of the fill (e.g. after a gap), the trade is skipped and logged.")
         sl.append("Stops fill at the stop price or worse if price gaps through it, plus slippage.")

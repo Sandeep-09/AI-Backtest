@@ -107,6 +107,10 @@ def compute_one(df: pd.DataFrame, ind: Indicator) -> np.ndarray:
         return pd.Series(_src(df, ind.source, "high")).rolling(ind.period, min_periods=ind.period).max().to_numpy()
     if t == "lowest":
         return pd.Series(_src(df, ind.source, "low")).rolling(ind.period, min_periods=ind.period).min().to_numpy()
+    if t == "candle_body":
+        return (df["close"] - df["open"]).to_numpy(float)
+    if t == "candle_range":
+        return (df["high"] - df["low"]).to_numpy(float)
     if t == "prior_session_high":
         return prior_session(df, "high")
     if t == "prior_session_low":

@@ -91,7 +91,7 @@ export default function ReviewPage({ st, setSt, goApprove }: { st: StrategyState
       <div className="grid gap-4 xl:grid-cols-12">
         <div className="space-y-4 xl:col-span-5">
           {interp && (interp.proposals.length > 0 || interp.unsupported.length > 0 || interp.notes.length > 0 || interp.error) && (
-            <Panel title="What the AI read" right={<span className="text-xs text-ink-400">{interp.engine === "openrouter" ? interp.model : "offline parser"}</span>}>
+            <Panel title="What the AI read" right={<span className="text-xs text-ink-400">{interp.engine === "openrouter" ? interp.model : interp.engine === "offline-parser" ? "offline parser" : `${interp.model ?? interp.engine} · imported`}</span>}>
               <ErrorBox error={interp.error} />
               <ul className="space-y-1.5 text-sm">
                 {interp.proposals.map((p, k) => (

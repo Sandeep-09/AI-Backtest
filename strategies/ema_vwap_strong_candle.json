@@ -1,0 +1,289 @@
+{
+  "name": "10/20/30/60 EMA + VWAP strong-candle breakout (longs)",
+  "engine": "claude-manual",
+  "model": "Claude (in chat, not OpenRouter)",
+  "messages": [
+    "10,20,30,60 ema on 5 mins time frame and vwap\n\ncheck for only longs\n\nentry is when price breaks 10,20,30,60 ema and vwap with a super strong candle the candle is entry and SL is 60ema low...",
+    "Q: What counts as \"price breaks the 10/20/30/60 EMA and VWAP\"? A: Opens below, closes above all — The candle opens below at least one of the 5 lines and closes above all 5. The break happens inside that one candle.",
+    "Q: How should \"super strong candle\" be measured? A: Body ≥ 1.5× ATR(14) — The candle's body (close − open) is at least 1.5 times the 14-bar ATR.",
+    "Q: Entry timing and stop? A: Enter at close, SL = lower of both — Stop at whichever is lower: the 60 EMA or the strong candle's low, 1 tick below.",
+    "Q: How does a winning trade exit? A: Fixed R target — Take profit at a multiple of the risk."
+  ],
+  "proposals": [
+    {
+      "path": "indicators",
+      "value": [
+        {
+          "id": "ema10",
+          "type": "ema",
+          "period": 10
+        },
+        {
+          "id": "ema20",
+          "type": "ema",
+          "period": 20
+        },
+        {
+          "id": "ema30",
+          "type": "ema",
+          "period": 30
+        },
+        {
+          "id": "ema60",
+          "type": "ema",
+          "period": 60
+        },
+        {
+          "id": "vwap",
+          "type": "vwap"
+        }
+      ],
+      "quote": "10,20,30,60 ema on 5 mins time frame and vwap"
+    },
+    {
+      "path": "indicators",
+      "value": [
+        {
+          "id": "ema10",
+          "type": "ema",
+          "period": 10
+        },
+        {
+          "id": "ema20",
+          "type": "ema",
+          "period": 20
+        },
+        {
+          "id": "ema30",
+          "type": "ema",
+          "period": 30
+        },
+        {
+          "id": "ema60",
+          "type": "ema",
+          "period": 60
+        },
+        {
+          "id": "vwap",
+          "type": "vwap"
+        },
+        {
+          "id": "atr14",
+          "type": "atr",
+          "period": 14
+        },
+        {
+          "id": "body",
+          "type": "candle_body"
+        }
+      ],
+      "quote": "Body ≥ 1.5× ATR(14)"
+    },
+    {
+      "path": "timeframe",
+      "value": "5m",
+      "quote": "5 mins time frame"
+    },
+    {
+      "path": "directions",
+      "value": "long",
+      "quote": "only longs"
+    },
+    {
+      "path": "entry.long",
+      "value": {
+        "when": {
+          "type": "all",
+          "conditions": [
+            {
+              "type": "any",
+              "conditions": [
+                {
+                  "type": "compare",
+                  "op": "lt",
+                  "left": {
+                    "kind": "price",
+                    "field": "open"
+                  },
+                  "right": {
+                    "kind": "indicator",
+                    "ref": "ema10"
+                  }
+                },
+                {
+                  "type": "compare",
+                  "op": "lt",
+                  "left": {
+                    "kind": "price",
+                    "field": "open"
+                  },
+                  "right": {
+                    "kind": "indicator",
+                    "ref": "ema20"
+                  }
+                },
+                {
+                  "type": "compare",
+                  "op": "lt",
+                  "left": {
+                    "kind": "price",
+                    "field": "open"
+                  },
+                  "right": {
+                    "kind": "indicator",
+                    "ref": "ema30"
+                  }
+                },
+                {
+                  "type": "compare",
+                  "op": "lt",
+                  "left": {
+                    "kind": "price",
+                    "field": "open"
+                  },
+                  "right": {
+                    "kind": "indicator",
+                    "ref": "ema60"
+                  }
+                },
+                {
+                  "type": "compare",
+                  "op": "lt",
+                  "left": {
+                    "kind": "price",
+                    "field": "open"
+                  },
+                  "right": {
+                    "kind": "indicator",
+                    "ref": "vwap"
+                  }
+                }
+              ]
+            },
+            {
+              "type": "all",
+              "conditions": [
+                {
+                  "type": "compare",
+                  "op": "gt",
+                  "left": {
+                    "kind": "price",
+                    "field": "close"
+                  },
+                  "right": {
+                    "kind": "indicator",
+                    "ref": "ema10"
+                  }
+                },
+                {
+                  "type": "compare",
+                  "op": "gt",
+                  "left": {
+                    "kind": "price",
+                    "field": "close"
+                  },
+                  "right": {
+                    "kind": "indicator",
+                    "ref": "ema20"
+                  }
+                },
+                {
+                  "type": "compare",
+                  "op": "gt",
+                  "left": {
+                    "kind": "price",
+                    "field": "close"
+                  },
+                  "right": {
+                    "kind": "indicator",
+                    "ref": "ema30"
+                  }
+                },
+                {
+                  "type": "compare",
+                  "op": "gt",
+                  "left": {
+                    "kind": "price",
+                    "field": "close"
+                  },
+                  "right": {
+                    "kind": "indicator",
+                    "ref": "ema60"
+                  }
+                },
+                {
+                  "type": "compare",
+                  "op": "gt",
+                  "left": {
+                    "kind": "price",
+                    "field": "close"
+                  },
+                  "right": {
+                    "kind": "indicator",
+                    "ref": "vwap"
+                  }
+                }
+              ]
+            },
+            {
+              "type": "compare",
+              "op": "gte",
+              "left": {
+                "kind": "indicator",
+                "ref": "body"
+              },
+              "right": {
+                "kind": "indicator",
+                "ref": "atr14",
+                "multiplier": 1.5,
+                "bars_ago": 1
+              }
+            }
+          ]
+        }
+      },
+      "quote": "price breaks 10,20,30,60 ema and vwap with a super strong candle"
+    },
+    {
+      "path": "entry.order",
+      "value": {
+        "type": "market_next_open",
+        "valid_bars": 1
+      },
+      "quote": "Enter at close"
+    },
+    {
+      "path": "stop",
+      "value": {
+        "type": "furthest_of",
+        "levels": [
+          {
+            "kind": "indicator",
+            "ref": "ema60"
+          },
+          {
+            "kind": "price",
+            "field": "low"
+          }
+        ],
+        "offset_ticks": 1
+      },
+      "quote": "SL = lower of both"
+    },
+    {
+      "path": "target",
+      "value": {
+        "type": "r_multiple"
+      },
+      "quote": "Fixed R target"
+    }
+  ],
+  "notes": [
+    "\"breaks … with a super strong candle\" = ALL of: (opens below ANY of the 5 lines) AND (closes above ALL 5 lines) AND (body ≥ 1.5 × ATR(14)), per your answers.",
+    "Line values are the values on the signal candle itself (as drawn on the chart).",
+    "ATR(14) is read from the previous bar, so the strong candle is compared with the volatility before it rather than inflating its own threshold. Change 'bars ago' to 0 in the controls if you meant otherwise.",
+    "\"the candle is entry\" + \"Enter at close\" = market order at the next bar's open, the first price available after the candle closes.",
+    "\"SL is 60ema low\" + \"lower of both\" = the lower of the 60 EMA and the candle's low at the signal bar, minus 1 tick.",
+    "Not decided by you yet, so left open: the R multiple for the target, which price the EMAs use, instrument, session, dates, sizing, costs and fill rules."
+  ]
+}

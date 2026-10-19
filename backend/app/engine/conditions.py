@@ -38,6 +38,8 @@ class Ctx:
         else:
             base = np.full(self.n, float(op.value))
         v = self.shift(base, op.bars_ago + extra_shift)
+        if op.multiplier != 1.0:
+            v = v * op.multiplier
         if op.offset_ticks:
             v = v + op.offset_ticks * self.tick
         return v

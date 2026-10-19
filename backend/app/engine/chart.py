@@ -34,7 +34,7 @@ def window(spec: StrategySpec, bars: pd.DataFrame, ind: dict[str, np.ndarray], a
                 pts.append({"time": int(tt), "value": round(float(x), 6)})
             elif pts and k and seg[k] != seg[k - 1]:
                 pts.append({"time": int(tt)})  # whitespace: break the line at a roll
-        lines.append({"id": spec_ind.id, "label": indicator_label(spec_ind), "overlay": spec_ind.type not in ("rsi", "atr"),
+        lines.append({"id": spec_ind.id, "label": indicator_label(spec_ind), "overlay": spec_ind.type not in ("rsi", "atr", "candle_body", "candle_range"),
                       "points": pts})
     rolls = []
     seg = w["seg"].to_numpy()

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Sparkles } from "lucide-react";
+import { FileUp, Sparkles } from "lucide-react";
 import { api } from "../api";
 import { ErrorBox, Panel, Spinner } from "../components/ui";
 
@@ -32,6 +32,15 @@ export default function DescribePage({ onOpen, llm }: { onOpen: (id: number) => 
         </div>
         <div className="mt-3 flex items-center gap-3">
           <button className="btn-primary" disabled={!text.trim() || busy} onClick={go}>{busy ? <Spinner /> : <Sparkles size={14} />} Interpret strategy</button>
+          <label className="btn-ghost cursor-pointer" title="Load an interpretation prepared outside the app, e.g. by Claude in chat">
+            <FileUp size={14} /> Import interpretation (.json)
+            <input type="file" accept="application/json,.json" className="hidden" onChange={async (e) => {
+              const f = e.target.files?.[0]; if (!f) return;
+              setBusy(true); setErr(null);
+              try { const s = await api.importInterp(JSON.parse(await f.text())); onOpen(s.strategy.id); } catch (x) { setErr(String(x)); }
+              setBusy(false); e.target.value = "";
+            }} />
+          </label>
           <span className="text-xs text-ink-400">
             {llm?.mode === "openrouter" ? <>AI: <span className="mono">{llm.model}</span> via OpenRouter</> :
               <span className="text-warn">AI not configured: using the offline keyword parser (set OPENROUTER_API_KEY for full interpretation)</span>}

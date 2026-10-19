@@ -195,6 +195,10 @@ class Simulator:
 
     def _close(self, p: Position, i: int, price: float, ts: int, reason: str, resolution: str, slipped: bool) -> None:
         c = self.c
+        # The exit bar's move counts towards excursion up to the exit price (later prices in that bar are unknown).
+        moved = (price - p.entry_price) * p.direction
+        p.best = max(p.best, moved)
+        p.worst = max(p.worst, -moved)
         if slipped:
             p.slip_fills += 1
         gross = (price - p.entry_price) * p.direction * c.point_value * p.qty
@@ -253,12 +257,25 @@ class Simulator:
             base = float(seg["low"].min()) if d > 0 else float(seg["high"].max())
             stop = base - d * s.offset_ticks * tk
             calc = f"{'lowest low' if d > 0 else 'highest high'} of last {s.lookback} bars {self._p(base)} {'−' if d > 0 else '+'} {s.offset_ticks} tick(s)"
+        elif s.type == "furthest_of":
+            from ..summary.render import operand_text
+
+            vals = []
+            for op in s.levels or []:
+                v = float(self.ctx.operand(op)[sig_i])
+                if np.isnan(v):
+                    return None, None, None, None, f"{operand_text(self.spec, op)} not available yet (warm-up)"
+                vals.append((v, operand_text(self.spec, op)))
+            base = min(v for v, _ in vals) if d > 0 else max(v for v, _ in vals)
+            stop = base - d * s.offset_ticks * tk
+            calc = (f"{'lower' if d > 0 else 'higher'} of: " + ", ".join(f"{name} {self._p(v)}" for v, name in vals) +
+                    f" → {self._p(base)} {'−' if d > 0 else '+'} {s.offset_ticks} tick(s)")
         else:
             v = self.ind[s.ref][sig_i]
             if np.isnan(v):
                 return None, None, None, None, f"{s.ref} not available yet (warm-up)"
             stop = v - d * s.offset_ticks * tk
-            calc = f"{s.ref} at signal {v:.6g} {'−' if d > 0 else '+'} {s.offset_ticks} tick(s)"
+            calc = f"{s.ref} at signal {self._p(v)} {'−' if d > 0 else '+'} {s.offset_ticks} tick(s)"
         stop = self._rt(stop, "down" if d > 0 else "up")
         if (d > 0 and stop >= fill) or (d < 0 and stop <= fill):
             return None, None, None, None, f"stop {self._p(stop)} is not beyond the fill {self._p(fill)} ({calc})"

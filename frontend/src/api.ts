@@ -52,6 +52,7 @@ export const api = {
   job: (id: string) => call<Job>("GET", `/api/jobs/${id}`),
   strategies: () => call<{ items: { id: number; name: string; created_at: string; latest: number }[] }>("GET", "/api/strategies"),
   create: (text: string) => call<StrategyState>("POST", "/api/strategies", { text }),
+  importInterp: (payload: Json) => call<StrategyState>("POST", "/api/strategies/import", payload),
   get: (id: number, version?: number) => call<StrategyState>("GET", `/api/strategies/${id}${version ? `?version=${version}` : ""}`),
   message: (id: number, text: string) => call<StrategyState>("POST", `/api/strategies/${id}/messages`, { text }),
   patch: (id: number, ops: { path: string; value: Json }[], note?: string) => call<StrategyState>("POST", `/api/strategies/${id}/patch`, { ops, note }),

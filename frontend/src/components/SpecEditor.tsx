@@ -51,6 +51,8 @@ function OperandEd({ op, onChange, ids }: { op: Json; onChange: (o: Json) => voi
       {op.kind === "const" && <input className="input w-24" type="number" value={op.value ?? 0} onChange={(e) => set("value", Number(e.target.value))} />}
       <input className="input w-16" type="number" min={0} title="bars ago" value={op.bars_ago ?? 0} onChange={(e) => set("bars_ago", Number(e.target.value))} />
       <span className="text-[11px] text-ink-500">bars ago</span>
+      <input className="input w-16" type="number" step={0.1} min={0.1} title="multiplier" value={op.multiplier ?? 1} onChange={(e) => set("multiplier", Number(e.target.value) || 1)} />
+      <span className="text-[11px] text-ink-500">× mult</span>
       <input className="input w-16" type="number" title="offset ticks" value={op.offset_ticks ?? 0} onChange={(e) => set("offset_ticks", Number(e.target.value))} />
       <span className="text-[11px] text-ink-500">± ticks</span>
     </div>
@@ -129,7 +131,7 @@ export default function SpecEditor({ spec, onApply, busy }: { spec: Json; onAppl
             <div key={k} className="flex flex-wrap items-center gap-2">
               <input className="input w-28" value={ind.id} onChange={(e) => set("indicators", d.indicators.map((x: Json, j: number) => j === k ? { ...x, id: e.target.value } : x))} />
               <select className="input w-40" value={ind.type} onChange={(e) => set("indicators", d.indicators.map((x: Json, j: number) => j === k ? { ...x, type: e.target.value } : x))}>
-                {["ema", "sma", "atr", "rsi", "vwap", "highest", "lowest", "prior_session_high", "prior_session_low"].map((t) => <option key={t}>{t}</option>)}
+                {["ema", "sma", "atr", "rsi", "vwap", "highest", "lowest", "prior_session_high", "prior_session_low", "candle_body", "candle_range"].map((t) => <option key={t}>{t}</option>)}
               </select>
               {["ema", "sma", "atr", "rsi", "highest", "lowest"].includes(ind.type) && <input className="input w-20" type="number" placeholder="period" value={ind.period ?? ""}
                 onChange={(e) => set("indicators", d.indicators.map((x: Json, j: number) => j === k ? { ...x, period: e.target.value ? Number(e.target.value) : null } : x))} />}
@@ -167,7 +169,13 @@ export default function SpecEditor({ spec, onApply, busy }: { spec: Json; onAppl
 
       <Block title="Stop loss" changed={ch("stop")}>
         <Field label="Type"><Sel value={d.stop?.type ?? null} onChange={(v) => set("stop", v ? { type: v, offset_ticks: 0 } : null)}
-          options={[["signal_bar_extreme", "Signal bar low/high"], ["fixed_ticks", "Fixed ticks from fill"], ["atr_multiple", "ATR multiple"], ["swing_extreme", "Swing low/high"], ["indicator", "At an indicator"]]} /></Field>
+          options={[["signal_bar_extreme", "Signal bar low/high"], ["fixed_ticks", "Fixed ticks from fill"], ["atr_multiple", "ATR multiple"], ["swing_extreme", "Swing low/high"], ["indicator", "At an indicator"], ["furthest_of", "Lower (long) / higher (short) of several levels"]]} /></Field>
+        {d.stop?.type === "furthest_of" && <div className="space-y-2 sm:col-span-2"><span className="label">Levels read at the signal bar</span>
+          {(d.stop.levels || []).map((op: Json, k: number) => (
+            <div key={k} className="flex items-center gap-2"><OperandEd op={op} ids={ids} onChange={(o) => sub("stop", "levels", d.stop.levels.map((x: Json, j: number) => j === k ? o : x))} />
+              <button className="text-ink-400 hover:text-short" onClick={() => sub("stop", "levels", d.stop.levels.filter((_: Json, j: number) => j !== k))}><Trash2 size={14} /></button></div>))}
+          <button className="btn-ghost" onClick={() => sub("stop", "levels", [...(d.stop.levels || []), { kind: "price", field: "low", bars_ago: 0, offset_ticks: 0 }])}><Plus size={13} /> Add level</button>
+        </div>}
         {d.stop?.type === "fixed_ticks" && <Field label="Ticks"><Num value={d.stop.ticks} onChange={(v) => sub("stop", "ticks", v)} /></Field>}
         {d.stop?.type === "atr_multiple" && <><Field label="ATR indicator"><Sel value={d.stop.atr_ref ?? null} onChange={(v) => sub("stop", "atr_ref", v)} options={(d.indicators || []).filter((i: Json) => i.type === "atr").map((i: Json) => [i.id, i.id])} /></Field>
           <Field label="Multiple"><Num step={0.1} value={d.stop.multiple} onChange={(v) => sub("stop", "multiple", v)} /></Field></>}

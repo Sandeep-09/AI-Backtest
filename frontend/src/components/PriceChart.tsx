@@ -93,12 +93,11 @@ export default function PriceChart({ data, overlay, height = 420, highlight = []
     });
     candles.setData(data.candles.map((c) => ({ time: c.time as UTCTimestamp, open: c.open, high: c.high, low: c.low, close: c.close,
       ...(c.in_session ? {} : { color: "#3a4663", wickColor: "#3a4663" }) })));
-    let pane = 1;
     data.indicators.forEach((ind, k) => {
       const s = chart.addSeries(LineSeries, {
         color: PALETTE[k % PALETTE.length], lineWidth: highlight.includes("indicators") ? 3 : 2, priceLineVisible: false,
         lastValueVisible: false, title: ind.label,
-      }, ind.overlay ? 0 : pane++);
+      }, ind.overlay ? 0 : 1);
       s.setData(ind.points.map((p) => (p.value === undefined ? { time: p.time as UTCTimestamp } : { time: p.time as UTCTimestamp, value: p.value })));
     });
     const times = data.candles.map((c) => c.time);
