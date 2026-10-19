@@ -102,6 +102,9 @@ class Simulator:
         q = math.floor(q + 1e-9) if mode == "down" else math.ceil(q - 1e-9) if mode == "up" else round(q)
         return round(q * self.tick, 10)
 
+    def _p(self, x: float) -> str:
+        return f"{x:.{self.c.price_decimals}f}"
+
     def _bar(self, i: int):
         return self.b.iloc[i]
 
@@ -232,24 +235,24 @@ class Simulator:
         tk = self.tick
         if s.type == "fixed_ticks":
             stop = fill - d * s.ticks * tk
-            calc = f"fill {fill:g} {'−' if d > 0 else '+'} {s.ticks} ticks"
+            calc = f"fill {self._p(fill)} {'−' if d > 0 else '+'} {s.ticks} ticks"
         elif s.type == "atr_multiple":
             a = self.ind[s.atr_ref][sig_i]
             if np.isnan(a):
                 return None, None, None, None, "ATR not available yet (warm-up)"
             stop = fill - d * s.multiple * a
-            calc = f"fill {fill:g} {'−' if d > 0 else '+'} {s.multiple:g} × ATR {a:.4g} = {fill - d * s.multiple * a:.6g}"
+            calc = f"fill {self._p(fill)} {'−' if d > 0 else '+'} {s.multiple:g} × ATR {a:.4g} = {self._p(fill - d * s.multiple * a)}"
         elif s.type == "signal_bar_extreme":
             base = float(row["low"]) if d > 0 else float(row["high"])
             stop = base - d * s.offset_ticks * tk
-            calc = f"signal bar {'low' if d > 0 else 'high'} {base:g} {'−' if d > 0 else '+'} {s.offset_ticks} tick(s)"
+            calc = f"signal bar {'low' if d > 0 else 'high'} {self._p(base)} {'−' if d > 0 else '+'} {s.offset_ticks} tick(s)"
         elif s.type == "swing_extreme":
             lo = max(0, sig_i - s.lookback + 1)
             seg = self.b.iloc[lo:sig_i + 1]
             seg = seg[seg["seg"] == row["seg"]]
             base = float(seg["low"].min()) if d > 0 else float(seg["high"].max())
             stop = base - d * s.offset_ticks * tk
-            calc = f"{'lowest low' if d > 0 else 'highest high'} of last {s.lookback} bars {base:g} {'−' if d > 0 else '+'} {s.offset_ticks} tick(s)"
+            calc = f"{'lowest low' if d > 0 else 'highest high'} of last {s.lookback} bars {self._p(base)} {'−' if d > 0 else '+'} {s.offset_ticks} tick(s)"
         else:
             v = self.ind[s.ref][sig_i]
             if np.isnan(v):
@@ -258,14 +261,14 @@ class Simulator:
             calc = f"{s.ref} at signal {v:.6g} {'−' if d > 0 else '+'} {s.offset_ticks} tick(s)"
         stop = self._rt(stop, "down" if d > 0 else "up")
         if (d > 0 and stop >= fill) or (d < 0 and stop <= fill):
-            return None, None, None, None, f"stop {stop:g} is not beyond the fill {fill:g} ({calc})"
+            return None, None, None, None, f"stop {self._p(stop)} is not beyond the fill {self._p(fill)} ({calc})"
         risk = abs(fill - stop)
         if t.type == "r_multiple":
             target = self._rt(fill + d * t.r * risk, "up" if d > 0 else "down")
-            tcalc = f"fill {fill:g} {'+' if d > 0 else '−'} {t.r:g} × risk {risk:g}"
+            tcalc = f"fill {self._p(fill)} {'+' if d > 0 else '−'} {t.r:g} × risk {self._p(risk)}"
         elif t.type == "fixed_ticks":
             target = fill + d * t.ticks * tk
-            tcalc = f"fill {fill:g} {'+' if d > 0 else '−'} {t.ticks} ticks"
+            tcalc = f"fill {self._p(fill)} {'+' if d > 0 else '−'} {t.ticks} ticks"
         elif t.type == "indicator":
             v = self.ind[t.ref][sig_i]
             if np.isnan(v):
@@ -273,7 +276,7 @@ class Simulator:
             target = self._rt(v)
             tcalc = f"{t.ref} at signal {v:.6g}"
             if (d > 0 and target <= fill) or (d < 0 and target >= fill):
-                return None, None, None, None, f"target {target:g} is not beyond the fill {fill:g}"
+                return None, None, None, None, f"target {self._p(target)} is not beyond the fill {self._p(fill)}"
         else:
             target, tcalc = None, "no fixed target"
         return stop, target, calc, tcalc, None

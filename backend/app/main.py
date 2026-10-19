@@ -75,10 +75,23 @@ def start_ingest(req: IngestReq):
         done, failed = 0, []
         total_bytes = sum(f["size"] for f in todo) or 1
         seen = 0
-        for f in todo:
-            job.progress(seen / total_bytes, f"Reading {Path(f['path']).name}", force=True)
+        class _FileProgress:
+            """Maps one file's progress into the overall job, weighted by file size."""
+
+            def __init__(self, base: int, size: int) -> None:
+                self.base, self.size = base, size
+
+            def progress(self, frac, message=None, force=False):
+                overall = None if frac is None else (self.base + frac * self.size) / total_bytes * 0.95
+                job.progress(overall, message, force)
+
+            def note(self, message):
+                job.note(message)
+
+        for k, f in enumerate(todo):
+            job.progress(seen / total_bytes * 0.95, f"[{k + 1}/{len(todo)}] Reading {Path(f['path']).name}", force=True)
             try:
-                ingest.ingest_file(f["fingerprint"], None)
+                ingest.ingest_file(f["fingerprint"], _FileProgress(seen, f["size"]))
                 done += 1
             except Exception as e:  # noqa: BLE001
                 failed.append({"file": f["path"], "error": str(e)})

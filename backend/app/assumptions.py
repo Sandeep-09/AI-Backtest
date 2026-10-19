@@ -33,7 +33,7 @@ def build(spec: StrategySpec, coverage: dict) -> dict:
     z = spec.sizing
     add("Sizing", ("not set" if z is None else f"{z.contracts} contract(s)" if z.type == "fixed_contracts"
                    else f"risk ${z.risk_usd:,.0f}/trade, max {z.max_contracts or '∞'} contracts, below 1 → {z.below_one}"), z is None)
-    add("Commission", f"${spec.costs.commission_per_side:g} per contract per side (${2 * spec.costs.commission_per_side:g} round turn)"
+    add("Commission", f"${spec.costs.commission_per_side:.2f} per contract per side (${2 * spec.costs.commission_per_side:.2f} round turn)"
         if spec.costs.commission_per_side is not None else "not set", spec.costs.commission_per_side is None)
     add("Slippage", f"{spec.costs.slippage_ticks:g} tick(s) on market and stop fills (= ${spec.costs.slippage_ticks * c.tick_value:g} per contract per fill); none on limit/target fills"
         if spec.costs.slippage_ticks is not None and c else "not set", spec.costs.slippage_ticks is None)

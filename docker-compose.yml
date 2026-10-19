@@ -1,0 +1,17 @@
+services:
+  backtest:
+    build: .
+    image: ai-backtest:latest
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      DATA_DIR: /data
+      VAR_DIR: /var/app
+    ports:
+      # Bound to localhost: the dashboard has no login. Reach it through an SSH tunnel (see README).
+      - "${BIND_ADDR:-127.0.0.1}:${PORT:-8000}:8000"
+    volumes:
+      # Your Databento folder, mounted read-only. The app never writes to it.
+      - ${DATABENTO_DIR:?Set DATABENTO_DIR in .env}:/data:ro
+      # App state: tick cache, bars, strategies, runs. Safe to delete to start over.
+      - ./var:/var/app

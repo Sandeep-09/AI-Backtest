@@ -265,7 +265,7 @@ def render(spec: StrategySpec) -> list[dict]:
 
     # Costs and fills
     cl = []
-    cl.append(f"Commission: ${spec.costs.commission_per_side:g} per contract per side." if spec.costs.commission_per_side is not None else f"Commission: {MISSING}")
+    cl.append(f"Commission: ${spec.costs.commission_per_side:.2f} per contract per side." if spec.costs.commission_per_side is not None else f"Commission: {MISSING}")
     cl.append(f"Slippage: {_ticks(spec.costs.slippage_ticks)} on market and stop fills (none on limit fills)." if spec.costs.slippage_ticks is not None else f"Slippage: {MISSING}")
     pol = {
         "intrabar_then_stop_first": "If a bar reaches both stop and target: replay tick or sub-bar data when available; if still unclear, assume the stop hit first.",

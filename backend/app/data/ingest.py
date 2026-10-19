@@ -450,7 +450,7 @@ def file_issues_from_manifest(fp: str, name: str, man: dict) -> None:
             db.add_issue("file", fp, "warning", "symbol_inferred",
                          f"{name}: instrument id {iid} has no symbol mapping; it was classed as {ins.get('kind')} of {ins.get('root')} from its price level. Add Databento 'definition' files for exact symbols.", ins)
     if man.get("synthetic"):
-        db.add_issue("file", fp, "warning", "synthetic", f"{name} is SYNTHETIC test data, not real market data.")
+        db.add_issue("file", fp, "info", "synthetic", f"{name} is SYNTHETIC test data, not real market data.")
 
 
 def ingest_file(fp: str, job: Job | None = None) -> dict:

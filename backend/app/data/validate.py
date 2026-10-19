@@ -26,6 +26,9 @@ def validate_root(root: str) -> dict:
     if bars.empty:
         return {}
     summary: dict = {"root": root, "gaps": [], "missing_sessions": [], "partial_days": []}
+    if bars["synthetic"].any():
+        n = bars.loc[bars["synthetic"], "file"].nunique()
+        db.add_issue("data", root, "warning", "synthetic", f"{root}: {n} file(s) are SYNTHETIC test data, not real market data. Results on them mean nothing.")
     for o in overlaps:
         db.add_issue("data", root, "warning", "overlap",
                      f"{root} {o['symbol']} trade date {o['trade_date']} appears in {len(o['files'])} files; using {o['kept']} (more data).", o)
