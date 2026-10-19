@@ -55,3 +55,29 @@ def trade_overlay(spec: StrategySpec, t: dict) -> dict:
         "stop_history": [{"time": sec(s["ts"]), "stop": s["stop"], "why": s["why"]} for s in t.get("stop_history", [])],
         "order_level": (t.get("order") or {}).get("level"),
     }
+
+
+def compact(spec: StrategySpec, bars: pd.DataFrame, ind: dict[str, np.ndarray], a: int = 0, z: int | None = None) -> dict:
+    """Column arrays for a whole range (smaller than per-candle objects)."""
+    tz = spec.display_timezone or "America/New_York"
+    z = len(bars) if z is None else min(len(bars), z)
+    a = max(0, a)
+    w = bars.iloc[a:z]
+    t = wall_seconds(w["ts"].to_numpy(), tz).tolist()
+
+    def col(x) -> list:
+        return [None if (v != v) else round(float(v), 6) for v in x]
+
+    seg = w["seg"].to_numpy()
+    lines = []
+    for spec_ind in spec.indicators:
+        v = ind.get(spec_ind.id)
+        if v is None:
+            continue
+        lines.append({"id": spec_ind.id, "label": indicator_label(spec_ind),
+                      "overlay": spec_ind.type not in ("rsi", "atr", "candle_body", "candle_range"), "v": col(v[a:z])})
+    rolls = [{"time": t[k], "from": str(w.iloc[k - 1]["symbol"]), "to": str(w.iloc[k]["symbol"])}
+             for k in range(1, len(w)) if seg[k] != seg[k - 1]]
+    return {"tz": tz, "t": t, "o": col(w["open"].to_numpy()), "h": col(w["high"].to_numpy()), "l": col(w["low"].to_numpy()),
+            "c": col(w["close"].to_numpy()), "out": [k for k, s in enumerate(w["in_session"].to_numpy()) if not s],
+            "ind": lines, "rolls": rolls, "offset": a}

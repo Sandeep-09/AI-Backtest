@@ -123,8 +123,10 @@ def render(spec: StrategySpec) -> list[dict]:
     S: list[dict] = []
     c = CONTRACTS.get(spec.instrument or "")
 
+    shorts = short(spec)
+
     def add(key: str, title: str, lines: list[str], paths: list[str]) -> None:
-        S.append({"key": key, "title": title, "lines": lines, "paths": paths,
+        S.append({"key": key, "title": title, "lines": lines, "paths": paths, "short": shorts.get(key, ""),
                   "missing": any(MISSING in ln or "⚠" in ln for ln in lines)})
 
     # Market and data
@@ -295,3 +297,112 @@ def render_text(spec: StrategySpec) -> str:
         out.extend(s["lines"])
         out.append("")
     return "\n".join(out)
+
+
+# ----- short, one-line versions for the side panel ------------------------------------
+_OP_SHORT = {"gt": ">", "lt": "<", "gte": "≥", "lte": "≤", "crosses_above": "crosses above", "crosses_below": "crosses below", "touches": "touches"}
+
+
+def _ind_short(ind: Indicator | None, ref: str | None) -> str:
+    if ind is None:
+        return f"?{ref}"
+    return {"ema": f"EMA{ind.period}", "sma": f"SMA{ind.period}", "atr": f"ATR{ind.period}", "rsi": f"RSI{ind.period}",
+            "vwap": "VWAP", "highest": f"High{ind.period}", "lowest": f"Low{ind.period}", "prior_session_high": "PrevHigh",
+            "prior_session_low": "PrevLow", "candle_body": "body", "candle_range": "range"}.get(ind.type, ind.id)
+
+
+def operand_short(spec: StrategySpec, op: Operand) -> str:
+    if op.kind == "indicator":
+        s = _ind_short(spec.indicator(op.ref), op.ref)
+    elif op.kind == "price":
+        s = op.field or "?"
+    else:
+        s = f"{op.value:g}" if op.value is not None else "?"
+    if op.bars_ago:
+        s += " (prev bar)" if op.bars_ago == 1 else f" ({op.bars_ago} bars ago)"
+    if op.multiplier != 1.0:
+        s = f"{op.multiplier:g}×{s}"
+    if op.offset_ticks:
+        s += f" {'+' if op.offset_ticks > 0 else '−'}{abs(op.offset_ticks)}t"
+    return s
+
+
+def group_short(spec: StrategySpec, g: Group | None) -> str:
+    if g is None or not g.conditions:
+        return "Not set"
+    cmps = [c for c in g.conditions if isinstance(c, Compare)]
+    if len(cmps) == len(g.conditions) and len(cmps) > 1 and len({(c.op, c.left.model_dump_json()) for c in cmps}) == 1:
+        c0 = cmps[0]
+        word = "any of" if g.type == "any" else "all of"
+        verb = {"lt": "below", "gt": "above", "lte": "at/below", "gte": "at/above"}.get(c0.op, _OP_SHORT[c0.op])
+        return f"{operand_short(spec, c0.left)} {verb} {word} {', '.join(operand_short(spec, c.right) for c in cmps)}"
+    parts = []
+    for c in g.conditions:
+        if isinstance(c, Compare):
+            parts.append(f"{operand_short(spec, c.left)} {_OP_SHORT[c.op]} {operand_short(spec, c.right)}")
+        else:
+            parts.append(group_short(spec, c))
+    return (" and " if g.type == "all" else " or ").join(parts) if len(parts) > 1 else parts[0]
+
+
+def short(spec: StrategySpec) -> dict[str, str]:
+    from ..labels import CONTRACT, SAME_BAR
+
+    c = CONTRACTS.get(spec.instrument or "")
+    out: dict[str, str] = {}
+    sess = {"rth": "RTH", "eth": "Globex 18:00–17:00", "custom": f"{spec.session.start}–{spec.session.end}" if spec.session else ""}.get(
+        spec.session.type if spec.session else "", None)
+    bits = [spec.instrument or "instrument?", spec.timeframe or "timeframe?", sess or "session?",
+            f"{spec.data.start} → {spec.data.end}" if spec.data.start and spec.data.end else "dates?",
+            CONTRACT.get(spec.data.contract or "", "contract rule?")]
+    out["market"] = " · ".join(bits)
+    out["indicators"] = " · ".join(_ind_short(i, i.id) for i in spec.indicators) or "None"
+    for d in ("long", "short"):
+        r = getattr(spec.entry, d)
+        out[f"signal_{d}"] = group_short(spec, r.when if r else None)
+    o = spec.entry.order
+    out["entry"] = ("Not set" if o is None else {"market_next_open": "Market at the next bar's open",
+                    "stop_beyond_signal_bar": f"Stop order {o.offset_ticks}t beyond the signal bar",
+                    "limit_at_level": "Limit at " + (operand_short(spec, o.level) if o.level else "?")}[o.type])
+    st = spec.stop
+    if st is None:
+        out["stop"] = "Not set"
+    elif st.type == "furthest_of":
+        out["stop"] = f"Lower of {', '.join(operand_short(spec, x) for x in st.levels or [])} −{st.offset_ticks}t"
+    elif st.type == "fixed_ticks":
+        out["stop"] = f"{st.ticks} ticks from fill"
+    elif st.type == "atr_multiple":
+        out["stop"] = f"{st.multiple:g}× {_ind_short(spec.indicator(st.atr_ref), st.atr_ref)} from fill"
+    elif st.type == "signal_bar_extreme":
+        out["stop"] = f"Signal bar low/high ∓{st.offset_ticks}t"
+    elif st.type == "swing_extreme":
+        out["stop"] = f"Swing low/high of {st.lookback} bars ∓{st.offset_ticks}t"
+    else:
+        out["stop"] = f"At {_ind_short(spec.indicator(st.ref), st.ref)} ∓{st.offset_ticks}t"
+    t = spec.target
+    out["target"] = ("Not set" if t is None else "No target" if t.type == "none" else
+                     (f"{t.r:g}R" if t.type == "r_multiple" and t.r else "R?" if t.type == "r_multiple" else
+                      f"{t.ticks} ticks" if t.type == "fixed_ticks" else f"At {_ind_short(spec.indicator(t.ref), t.ref)}") +
+                     {"touch": " · fills on touch", "trade_through": " · needs 1-tick trade-through", None: ""}[spec.fills.limit_fill])
+    m = spec.management
+    mm = []
+    mm.append({True: "Flat at session end", False: "Can hold overnight", None: "Session end?"}[m.flat_at_session_end])
+    if m.breakeven_at_r:
+        mm.append(f"breakeven at {m.breakeven_at_r:g}R")
+    if m.trail:
+        mm.append("trailing stop")
+    if m.time_exit_bars:
+        mm.append(f"exit after {m.time_exit_bars} bars")
+    if m.max_trades_per_day:
+        mm.append(f"max {m.max_trades_per_day}/session")
+    out["management"] = " · ".join(mm)
+    z = spec.sizing
+    out["sizing"] = "Not set" if z is None else (f"{z.contracts} contract(s)" if z.type == "fixed_contracts" else f"Risk ${z.risk_usd:,.0f}/trade")
+    cs = spec.costs
+    out["costs"] = " · ".join([
+        f"${cs.commission_per_side:.2f}/side" if cs.commission_per_side is not None else "commission?",
+        f"{cs.slippage_ticks:g} tick slip" if cs.slippage_ticks is not None else "slippage?",
+        SAME_BAR.get(spec.fills.same_bar_policy or "", "same-bar rule?"),
+    ])
+    _ = c
+    return out

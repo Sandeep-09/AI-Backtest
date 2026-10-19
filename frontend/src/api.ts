@@ -4,7 +4,7 @@ export type Json = any; // eslint-disable-line @typescript-eslint/no-explicit-an
 
 export interface Option { label: string; path: string; value: Json; note?: string | null }
 export interface Question { id: string; path: string; question: string; severity: string; options: Option[]; free_text_hint?: string | null }
-export interface Section { key: string; title: string; lines: string[]; paths: string[]; missing: boolean; changed: boolean }
+export interface Section { key: string; title: string; lines: string[]; paths: string[]; missing: boolean; changed: boolean; short: string }
 export interface Proposal { path: string; label: string; value: Json; quote: string | null; status: string; reason: string | null }
 export interface Interpretation { engine: string; model: string | null; proposals: Proposal[]; questions: string[]; notes: string[];
   unsupported: { text: string; reason: string; acknowledged?: boolean }[]; error: string | null }
@@ -15,9 +15,13 @@ export interface Overlay { n: number; direction: string; signal_time: number; en
   entry_price: number; stop: number; target: number | null; exit_price: number; exit_reason: string; order_level: number | null;
   stop_history: { time: number; stop: number; why: string }[] }
 export interface Trade { [k: string]: Json }
+export interface CompactChart { tz: string; t: number[]; o: number[]; h: number[]; l: number[]; c: number[]; out: number[];
+  ind: { id: string; label: string; overlay: boolean; v: (number | null)[] }[]; rolls: { time: number; from: string; to: string }[] }
+export interface TradeMark extends Overlay { net_pnl: number; symbol: string }
 export interface Example { label: string; trade: Trade; chart: ChartData; overlay: Overlay }
 export interface Preview { ok: boolean; missing?: string[]; message?: string | null; source?: string; spec_hash?: string; notes?: string[];
-  examples?: Record<string, Example | null>; scanned?: Json; skipped_sample?: Json[] }
+  examples?: Record<string, Example | null>; scanned?: Json; skipped_sample?: Json[];
+  window_chart?: CompactChart; trades?: TradeMark[]; trade_details?: Record<string, Trade> }
 export interface Gate { can_approve: boolean; reasons: string[]; blocking_issues: Issue[]; open_unsupported: Json[] }
 export interface StrategyState {
   strategy: { id: number; name: string; created_at: string };
@@ -66,6 +70,9 @@ export const api = {
     return call<{ total: number; items: Trade[] }>("GET", `/api/runs/${id}/trades?${qs}`);
   },
   trade: (id: number, n: number) => call<Json>("GET", `/api/runs/${id}/trades/${n}`),
+  runChart: (id: number) => call<{ chart: CompactChart; trades: TradeMark[] }>("GET", `/api/runs/${id}/chart`),
+  templates: () => call<{ items: { file: string; name: string; by: string; notes: string[] }[] }>("GET", "/api/templates"),
+  loadTemplate: (file: string) => call<StrategyState>("POST", `/api/templates/${encodeURIComponent(file)}`),
 };
 
 export const money = (x: number | null | undefined) =>
@@ -73,3 +80,12 @@ export const money = (x: number | null | undefined) =>
 export const num = (x: number | null | undefined, d = 2) => (x === null || x === undefined ? "—" : x.toLocaleString(undefined, { maximumFractionDigits: d }));
 export const pct = (x: number | null | undefined) => (x === null || x === undefined ? "—" : `${(x * 100).toFixed(1)}%`);
 export const shortHash = (h?: string) => (h ? h.slice(0, 12) : "");
+
+/* Plain-language wording for how a fill was decided. */
+export const plain = (s: string | undefined | null) =>
+  (s ?? "")
+    .replace("tick replay", "checked tick-by-tick")
+    .replace("1s replay", "checked second-by-second")
+    .replace("1m replay", "checked minute-by-minute")
+    .replace("policy: stop first", "assumed stop first")
+    .replace("policy: target first", "assumed target first");

@@ -209,6 +209,21 @@ def get_run(run_id: int):
     return strategies.get_run(run_id)
 
 
+@app.get("/api/runs/{run_id}/chart")
+def run_chart(run_id: int):
+    return strategies.run_chart(run_id)
+
+
+@app.get("/api/templates")
+def templates():
+    return {"items": strategies.list_templates()}
+
+
+@app.post("/api/templates/{file}")
+def load_template(file: str):
+    return strategies.state(strategies.load_template(file))
+
+
 @app.get("/api/runs/{run_id}/trades")
 def trades(run_id: int, q: str | None = None, direction: str | None = None, outcome: str | None = None, limit: int = 100, offset: int = 0):
     return strategies.list_trades(run_id, q, direction, outcome, min(limit, 1000), offset)

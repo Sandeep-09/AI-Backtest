@@ -15,6 +15,7 @@ COPY backend/requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
 COPY backend/app ./app
 COPY scripts ./scripts
+COPY strategies ./strategies
 COPY --from=web /web/dist ./static
 RUN useradd -m -u 1000 app && mkdir -p /var/app && chown app /var/app
 USER app

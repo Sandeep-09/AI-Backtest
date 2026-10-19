@@ -2,18 +2,22 @@
 @tailwind components;
 @tailwind utilities;
 
-@layer components {
-  .card { @apply rounded-xl border border-ink-700 bg-ink-900; }
-  .btn { @apply inline-flex items-center gap-1.5 rounded-lg px-3 py-1.5 text-sm font-medium transition disabled:cursor-not-allowed disabled:opacity-40; }
-  .btn-primary { @apply btn bg-accent text-ink-950 hover:bg-blue-300; }
-  .btn-go { @apply btn bg-long text-ink-950 hover:bg-green-300; }
-  .btn-ghost { @apply btn border border-ink-600 text-ink-200 hover:bg-ink-800; }
-  .btn-warn { @apply btn bg-warn text-ink-950 hover:bg-amber-300; }
-  .input { @apply w-full rounded-lg border border-ink-600 bg-ink-850 px-2.5 py-1.5 text-sm text-ink-100 outline-none focus:border-accent; }
-  .label { @apply mb-1 block text-xs font-medium uppercase tracking-wide text-ink-400; }
-  .chip { @apply inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium; }
-  .tbl th { @apply px-2 py-1.5 text-left text-xs font-medium uppercase tracking-wide text-ink-400; }
-  .tbl td { @apply px-2 py-1.5 text-sm; }
-}
-body { font-feature-settings: "tnum" 1; }
+html, body, #root { height: 100%; }
+body { font-feature-settings: "tnum" 1; font-size: 13px; }
 .mono { font-family: "JetBrains Mono", ui-monospace, monospace; }
+
+@layer components {
+  .btn { @apply inline-flex items-center justify-center gap-1.5 rounded px-3 py-1.5 text-[13px] font-medium transition disabled:cursor-not-allowed disabled:opacity-40; }
+  .btn-primary { @apply btn bg-accent text-white hover:bg-[#1e53e5]; }
+  .btn-go { @apply btn bg-up text-white hover:bg-[#06806c]; }
+  .btn-ghost { @apply btn text-tv-text hover:bg-tv-hover; }
+  .btn-outline { @apply btn border border-tv-line text-tv-text hover:bg-tv-hover; }
+  .input { @apply w-full rounded border border-tv-line bg-tv-bg px-2.5 py-1.5 text-[13px] text-tv-text outline-none placeholder:text-tv-dim focus:border-accent; }
+  .label { @apply mb-1 block text-[11px] font-medium uppercase tracking-wide text-tv-muted; }
+  .chip { @apply inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[11px] font-medium; }
+  .tab { @apply relative px-3 py-2 text-[13px] text-tv-muted hover:text-tv-text; }
+  .tab-on { @apply text-tv-strong after:absolute after:inset-x-2 after:bottom-0 after:h-0.5 after:bg-accent after:content-['']; }
+  .tbl th { @apply sticky top-0 bg-tv-panel px-2 py-1.5 text-left text-[11px] font-medium uppercase tracking-wide text-tv-muted; }
+  .tbl td { @apply px-2 py-1.5; }
+  .scroll-thin { scrollbar-width: thin; scrollbar-color: #363a45 transparent; }
+}

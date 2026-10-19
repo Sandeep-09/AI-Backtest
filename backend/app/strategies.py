@@ -418,3 +418,48 @@ def trade_detail(run_id: int, n: int) -> dict:
     return {"trade": t, "chart": chart.window(spec, sim.b, sim.ind, a, z), "overlay": chart.trade_overlay(spec, t),
             "indicators_at_signal": ind_at_signal, "rules": render(spec), "version": run["version"], "spec_hash": v["spec_hash"],
             "hash_matches_trade": t.get("spec_hash") == v["spec_hash"]}
+
+
+def run_chart(run_id: int) -> dict:
+    sim = _sim_for_run(run_id)
+    trades = [db.lj(r["detail_json"]) for r in db.q("SELECT detail_json FROM trades WHERE run_id=? ORDER BY n", (run_id,))]
+    return {"chart": chart.compact(sim.spec, sim.b, sim.ind),
+            "trades": [dict(chart.trade_overlay(sim.spec, t), net_pnl=t["net_pnl"], symbol=t["symbol"]) for t in trades]}
+
+
+# ----- templates (prepared interpretations in strategies/*.json) -------------------------
+def templates_dir():
+    from pathlib import Path
+    import os
+
+    env = os.environ.get("TEMPLATES_DIR")
+    if env:
+        return Path(env)
+    here = Path(__file__).resolve()
+    for p in (here.parents[2] / "strategies", here.parents[1] / "strategies"):
+        if p.exists():
+            return p
+    return here.parents[2] / "strategies"
+
+
+def list_templates() -> list[dict]:
+    import json
+
+    out = []
+    for f in sorted(templates_dir().glob("*.json")):
+        try:
+            d = json.loads(f.read_text())
+            out.append({"file": f.name, "name": d.get("name") or f.stem, "by": d.get("model") or d.get("engine"),
+                        "notes": d.get("notes", [])[:3]})
+        except Exception:  # noqa: BLE001
+            continue
+    return out
+
+
+def load_template(file: str) -> int:
+    import json
+
+    p = templates_dir() / file
+    if p.parent.resolve() != templates_dir().resolve() or not p.exists() or p.suffix != ".json":
+        raise KeyError(file)
+    return import_interpretation(json.loads(p.read_text()))

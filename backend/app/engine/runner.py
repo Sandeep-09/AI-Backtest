@@ -161,8 +161,13 @@ def preview(spec: StrategySpec, spec_hash: str, has_data: bool) -> dict:
         else:
             out_examples[d] = None
     skipped_sample = (res["skipped"][:12] if sim else [])
+    # Every trade in the scanned sessions, for drawing on the main chart. These are exactly the
+    # backtest's trades over these sessions (nothing looks ahead).
+    window_trades = [dict(chart.trade_overlay(sim.spec, t), net_pnl=t["net_pnl"], symbol=t["symbol"]) for t in res["trades"]]
     return {"ok": True, "source": source, "spec_hash": spec_hash, "notes": notes, "examples": out_examples,
             "scanned": scanned, "skipped_sample": skipped_sample,
+            "window_chart": chart.compact(sim.spec, sim.b, sim.ind), "trades": window_trades,
+            "trade_details": {str(t["n"]): t for t in res["trades"]},
             "message": None if any(out_examples.values()) else "No trade was triggered in the scanned period. The rules may be too strict, or need correcting."}
 
 

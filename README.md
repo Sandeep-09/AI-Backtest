@@ -39,39 +39,28 @@ The dashboard listens on `127.0.0.1:8000` on the VPS because it has **no login**
 ssh -L 8000:localhost:8000 root@YOUR_VPS     # then browse http://localhost:8000
 ```
 
-Then:
+Then, on the single screen (TradingView-style: chart in the middle, strategy on the right, results at the bottom):
 
-1. **Data**: click *Read new files*. The first read streams all MBO files; expect several minutes per GB, because your NQ MBO alone is roughly 15 GB. Results are cached in `./var`, so later starts are instant. Review the validation list.
-2. **Describe**: write the strategy in plain English.
-3. **Review & modify**: answer the open questions, use **Modify strategy** (chat or editable controls), and check the long/short examples on the chart.
-4. **Assumptions & approve**: read every assumption and limitation, then click **Approve strategy and run backtest**.
-5. **Results**: equity, drawdown and metrics; search the trade list and click a trade to trace it to the rules.
+1. Click **Read data** (top-right button). The first read streams all MBO files; expect several minutes per GB, because your NQ MBO alone is roughly 15 GB. Results are cached in `./var`, so later starts are instant.
+2. In **Chat**, describe a strategy or pick a template.
+3. Answer the open questions one at a time in **Strategy**. The chart draws the preview trades as soon as the rules allow.
+4. Click **Approve & run**. The numbers appear in the bottom panel and every trade is drawn on the chart.
+5. Click any trade, on the chart or in **List of trades**, to see its signal, entry, stop, target, exit, costs and the approved rules.
 
 `./var` holds the cache and the database. Delete it to start from scratch; your Databento folder is never written to.
 
 ### Run the EMA/VWAP strong-candle strategy (NQ and GC)
 
-```bash
-cd AI-Backtest && git pull && docker compose up -d --build
-ssh -L 8000:localhost:8000 root@YOUR_VPS          # from your computer, then open http://localhost:8000
-```
-
-1. **Data → Read new files.** This is a one-time read; the MBO files take a while.
-2. **Describe → Import interpretation (.json)** → `strategies/ema_vwap_strong_candle_NQ.json`.
-   - Answer the remaining one-click questions: EMA price source, display timezone, contract on roll days, date range, same-bar policy, target-fill rule.
-   - Check the long example on the chart, then **Approve strategy and run backtest**.
-3. Repeat step 2 with `strategies/ema_vwap_strong_candle_GC.json`.
-4. Print the results to paste into chat:
+1. Go to **Chat → template "NQ: 10/20/30/60 EMA + VWAP strong-candle breakout"**. Answer the remaining questions, then click **Approve & run**. Do the same with the GC template.
+2. Optionally print a paste-ready summary:
    ```bash
-   docker compose exec backtest python -m app.report --list    # run ids
-   docker compose exec backtest python -m app.report --run 1   # NQ
-   docker compose exec backtest python -m app.report --run 2   # GC
+   docker compose exec backtest python -m app.report --list
+   docker compose exec backtest python -m app.report --run 1
    ```
-   Each report also writes the full trade list to `var/exports/run-<id>-trades.csv`.
 
 ### Interpretations prepared outside the app
 
-`strategies/*.json` holds interpretations written by Claude in chat (e.g. `ema_vwap_strong_candle_NQ.json` / `_GC.json`: 10/20/30/60 EMA + VWAP strong-candle breakout, longs only, 3R, full Globex session). Load one with **Describe → Import interpretation (.json)**. Your own words travel with the file, and every value goes through the same quote check as the in-app AI. Anything you didn't decide stays an open question.
+`strategies/*.json` holds interpretations written by Claude in chat (e.g. `ema_vwap_strong_candle_NQ.json` / `_GC.json`: 10/20/30/60 EMA + VWAP strong-candle breakout, longs only, 3R, full Globex session). They appear as templates in **Chat**; other files can be loaded with **Import file**. Your own words travel with the file, and every value goes through the same quote check as the in-app AI. Anything you didn't decide stays an open question.
 
 ### Inspect data without the app
 
