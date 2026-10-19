@@ -1,5 +1,5 @@
 {
-  "name": "10/20/30/60 EMA + VWAP strong-candle breakout (longs)",
+  "name": "NQ: 10/20/30/60 EMA + VWAP strong-candle breakout (longs, 3R, Globex)",
   "engine": "claude-manual",
   "model": "Claude (in chat, not OpenRouter)",
   "messages": [
@@ -7,7 +7,10 @@
     "Q: What counts as \"price breaks the 10/20/30/60 EMA and VWAP\"? A: Opens below, closes above all — The candle opens below at least one of the 5 lines and closes above all 5. The break happens inside that one candle.",
     "Q: How should \"super strong candle\" be measured? A: Body ≥ 1.5× ATR(14) — The candle's body (close − open) is at least 1.5 times the 14-bar ATR.",
     "Q: Entry timing and stop? A: Enter at close, SL = lower of both — Stop at whichever is lower: the 60 EMA or the strong candle's low, 1 tick below.",
-    "Q: How does a winning trade exit? A: Fixed R target — Take profit at a multiple of the risk."
+    "Q: How does a winning trade exit? A: Fixed R target — Take profit at a multiple of the risk.",
+    "Q: What reward-to-risk target? A: 3R",
+    "Q: Which instrument(s)? A: Both, separately",
+    "Q: Which session and costs? A: Full Globex session, hold allowed — Use 18:00–17:00 ET bars and allow holding overnight; same costs ($2.50/side, 1 tick slip), 1 contract."
   ],
   "proposals": [
     {
@@ -273,9 +276,46 @@
     {
       "path": "target",
       "value": {
-        "type": "r_multiple"
+        "type": "r_multiple",
+        "r": 3
       },
-      "quote": "Fixed R target"
+      "quote": "3R"
+    },
+    {
+      "path": "instrument",
+      "value": "NQ",
+      "quote": "Both, separately"
+    },
+    {
+      "path": "session",
+      "value": {
+        "type": "eth",
+        "tz": "America/New_York"
+      },
+      "quote": "Full Globex session"
+    },
+    {
+      "path": "management.flat_at_session_end",
+      "value": false,
+      "quote": "hold allowed"
+    },
+    {
+      "path": "sizing",
+      "value": {
+        "type": "fixed_contracts",
+        "contracts": 1
+      },
+      "quote": "1 contract"
+    },
+    {
+      "path": "costs.commission_per_side",
+      "value": 2.5,
+      "quote": "$2.50/side"
+    },
+    {
+      "path": "costs.slippage_ticks",
+      "value": 1,
+      "quote": "1 tick slip"
     }
   ],
   "notes": [
@@ -284,6 +324,8 @@
     "ATR(14) is read from the previous bar, so the strong candle is compared with the volatility before it rather than inflating its own threshold. Change 'bars ago' to 0 in the controls if you meant otherwise.",
     "\"the candle is entry\" + \"Enter at close\" = market order at the next bar's open, the first price available after the candle closes.",
     "\"SL is 60ema low\" + \"lower of both\" = the lower of the 60 EMA and the candle's low at the signal bar, minus 1 tick.",
-    "Not decided by you yet, so left open: the R multiple for the target, which price the EMAs use, instrument, session, dates, sizing, costs and fill rules."
+    "This file is the NQ (E-mini Nasdaq-100) copy; the GC/NQ twin has identical rules.",
+    "Full Globex session: bars from 18:00 to 17:00 ET, positions may be held overnight. VWAP resets at each 18:00 ET session start.",
+    "Still yours to decide in the app: which price the EMAs use, display timezone, contract on roll days, date range, same-bar stop/target policy, and whether the target needs a touch or a trade-through."
   ]
 }

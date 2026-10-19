@@ -12,7 +12,8 @@ from app.spec.schema import Group, StrategySpec
 from .test_engine import make_bars, prep_of, spec_with
 
 ROOT = Path(__file__).resolve().parents[2]
-INTERP = json.loads((ROOT / "strategies" / "ema_vwap_strong_candle.json").read_text())
+INTERP = json.loads((ROOT / "strategies" / "ema_vwap_strong_candle_NQ.json").read_text())
+INTERP_GC = json.loads((ROOT / "strategies" / "ema_vwap_strong_candle_GC.json").read_text())
 
 
 def long_when() -> Group:
@@ -60,20 +61,53 @@ def test_stop_is_lower_of_ema60_and_signal_low():
     assert t["stop_calc"].startswith("lower of:")
 
 
-def test_import_applies_every_quoted_proposal_and_leaves_gaps_open(client):
-    st = client.post("/api/strategies/import", json=INTERP).json()
+OPEN_DECISIONS = {"display-tz", "contract", "dates", "target-fill", "same-bar"}
+
+
+@pytest.mark.parametrize("payload,root", [(INTERP, "NQ"), (INTERP_GC, "GC")])
+def test_import_applies_every_quoted_proposal_and_leaves_gaps_open(client, payload, root):
+    st = client.post("/api/strategies/import", json=payload).json()
     props = st["interpretation"]["proposals"]
     assert props and all(p["status"] == "applied" for p in props), [(p["path"], p["status"], p["reason"]) for p in props]
     assert st["interpretation"]["engine"] == "claude-manual"
     spec = st["spec"]
     assert [i["id"] for i in spec["indicators"]] == ["ema10", "ema20", "ema30", "ema60", "vwap", "atr14", "body"]
-    assert spec["directions"] == "long" and spec["timeframe"] == "5m" and spec["stop"]["type"] == "furthest_of"
-    ids = {q["id"] for q in st["questions"]}
-    # Not decided by the user -> still questions, never defaults.
-    assert {"target-r", "instrument", "session", "sizing", "commission"} <= ids
-    assert any(i.startswith("ind-source-ema") for i in ids)
+    assert spec["instrument"] == root and spec["directions"] == "long" and spec["timeframe"] == "5m"
+    assert spec["stop"]["type"] == "furthest_of" and spec["target"] == {"type": "r_multiple", "r": 3.0, "ticks": None, "ref": None}
+    assert spec["session"]["type"] == "eth" and spec["management"]["flat_at_session_end"] is False
+    assert spec["costs"] == {"commission_per_side": 2.5, "slippage_ticks": 1.0}
+    ids = {q["id"] for q in st["questions"] if q["severity"] == "required"}
+    # Exactly the decisions the user hasn't made yet are still open.
+    assert ids - {i for i in ids if i.startswith("ind-source-ema")} == OPEN_DECISIONS
+    assert {f"ind-source-ema{n}" for n in (10, 20, 30, 60)} <= ids
     text = " ".join(" ".join(s["lines"]) for s in st["summary"])
-    assert "1.5 × ATR(14) of the previous bar" in text and "the lower of" in text
+    assert "1.5 × ATR(14) of the previous bar" in text and "the lower of" in text and "1:3" in text
+
+
+def test_report_prints_metrics_for_finished_run(client):
+    from app import jobs, report
+
+    st = client.post("/api/strategies/import", json=INTERP).json()
+    sid = st["strategy"]["id"]
+    inds = [dict(i, source="close") if i["type"] == "ema" else i for i in st["spec"]["indicators"]]
+    ops = [{"path": "indicators", "value": inds}, {"path": "display_timezone", "value": "America/New_York"},
+           {"path": "data", "value": {"contract": "most_active_same_day", "start": "2026-09-08", "end": "2026-09-17"}},
+           {"path": "fills.same_bar_policy", "value": "intrabar_then_stop_first"}, {"path": "fills.limit_fill", "value": "trade_through"}]
+    st = client.post(f"/api/strategies/{sid}/patch", json={"ops": ops}).json()
+    v, h = st["version"]["version"], st["version"]["spec_hash"]
+    st = client.post(f"/api/strategies/{sid}/versions/{v}/preview").json()
+    assert st["gate"]["can_approve"], st["gate"]["reasons"]
+    client.post(f"/api/strategies/{sid}/versions/{v}/approve", json={"spec_hash": h})
+    run = client.post(f"/api/strategies/{sid}/versions/{v}/runs", json={"spec_hash": h}).json()
+    assert jobs.wait(run["job_id"], 120)["status"] == "done"
+    text, rid = report.build(run["run_id"])
+    assert rid == run["run_id"] and f"hash {h[:16]}" in text and "SYNTHETIC" in text
+    m = client.get(f"/api/runs/{rid}").json()["result"]["metrics"]
+    if m["trade_count"]:
+        assert f"Trades: {m['trade_count']}" in text
+    else:
+        assert "No trades were taken." in text
+    assert "exported to" in text
 
 
 def test_unquoted_import_value_is_not_applied(client):

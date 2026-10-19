@@ -109,7 +109,7 @@ def main() -> int:
         shot(pg, "6-results")
 
         # 7. Import an interpretation written outside the app (Claude in chat); every value must pass the quote check.
-        interp = Path(__file__).resolve().parents[1] / "strategies" / "ema_vwap_strong_candle.json"
+        interp = Path(__file__).resolve().parents[1] / "strategies" / "ema_vwap_strong_candle_NQ.json"
         if interp.exists():
             pg.get_by_role("button", name="New strategy").click()
             pg.set_input_files("input[type=file]", str(interp))

@@ -49,9 +49,29 @@ Then:
 
 `./var` holds the cache and the database. Delete it to start from scratch; your Databento folder is never written to.
 
+### Run the EMA/VWAP strong-candle strategy (NQ and GC)
+
+```bash
+cd AI-Backtest && git pull && docker compose up -d --build
+ssh -L 8000:localhost:8000 root@YOUR_VPS          # from your computer, then open http://localhost:8000
+```
+
+1. **Data → Read new files.** This is a one-time read; the MBO files take a while.
+2. **Describe → Import interpretation (.json)** → `strategies/ema_vwap_strong_candle_NQ.json`.
+   - Answer the remaining one-click questions: EMA price source, display timezone, contract on roll days, date range, same-bar policy, target-fill rule.
+   - Check the long example on the chart, then **Approve strategy and run backtest**.
+3. Repeat step 2 with `strategies/ema_vwap_strong_candle_GC.json`.
+4. Print the results to paste into chat:
+   ```bash
+   docker compose exec backtest python -m app.report --list    # run ids
+   docker compose exec backtest python -m app.report --run 1   # NQ
+   docker compose exec backtest python -m app.report --run 2   # GC
+   ```
+   Each report also writes the full trade list to `var/exports/run-<id>-trades.csv`.
+
 ### Interpretations prepared outside the app
 
-`strategies/*.json` holds interpretations written by Claude in chat (e.g. `ema_vwap_strong_candle.json`: 10/20/30/60 EMA + VWAP strong-candle breakout, longs only). Load one with **Describe → Import interpretation (.json)**. Your own words travel with the file, and every value goes through the same quote check as the in-app AI. Anything you didn't decide stays an open question.
+`strategies/*.json` holds interpretations written by Claude in chat (e.g. `ema_vwap_strong_candle_NQ.json` / `_GC.json`: 10/20/30/60 EMA + VWAP strong-candle breakout, longs only, 3R, full Globex session). Load one with **Describe → Import interpretation (.json)**. Your own words travel with the file, and every value goes through the same quote check as the in-app AI. Anything you didn't decide stays an open question.
 
 ### Inspect data without the app
 
