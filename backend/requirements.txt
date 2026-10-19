@@ -1,0 +1,10 @@
+fastapi==0.115.14
+uvicorn[standard]==0.30.6
+pydantic==2.14.1
+databento==0.87.0
+pandas==2.2.3
+numpy==2.2.6
+pyarrow==26.0.0
+httpx==0.28.1
+pandas_market_calendars==5.5.0
+zstandard==0.25.0
